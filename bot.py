@@ -52,8 +52,16 @@ def get_data():
     }
 
 
-def get_message():
-    message = get_data()
+def answer(chat_id, text):
+    requests.get(f'{URL}/sendmessage?chat_id={chat_id}&text={text}')
+
+
+def parsing(text):
+    return ' '.join(re.findall('\s*(\w+)\s*',text))
+
+
+def run(data):
+    message = data
     chat = message['chat_id']
     text = parsing(message['text'])
 
@@ -79,23 +87,11 @@ def get_message():
             answer(chat, text)
 
 
-def answer(chat_id, text):
-    requests.get(f'{URL}/sendmessage?chat_id={chat_id}&text={text}')
-
-
-def parsing(text):
-    return ' '.join(re.findall('\s*(\w+)\s*',text))
-
-
-def main():
-    #get_message()
+if __name__ == '__main__':
     update_id = get_data()['last_update_id']
     while True:
-        current_id = get_data()['last_update_id']
+        data = get_data()
+        current_id = data['last_update_id']
         if update_id != current_id:
-            get_message()
-            update_id = get_data()['last_update_id']
-
-
-if __name__ == '__main__':
-    main()
+            run(data)
+            update_id = data['last_update_id']
