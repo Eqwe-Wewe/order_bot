@@ -1,9 +1,29 @@
 import requests
 import re
 from config import TOKEN
+from transitions import Machine
 
 
 URL = r'https://api.telegram.org/bot' + TOKEN
+
+
+class Order(object):
+
+    states = [
+        'size_selected', 'select_payment_method', 'standby'
+    ]
+
+    transitions = [
+        {'trigger': 'choose_size', 'source': 'standby', 'dest': 'size_selected'},
+        {'trigger': 'choose_payment', 'source': 'size_selected', 'dest': 'select_payment_method'},
+        {'trigger': 'confirm', 'source': 'select_payment_method', 'dest': 'standby'},
+    ]
+
+    def __init__(self):
+        self.machine = Machine(
+            self, states=Order.states, transitions=Order.transitions,
+            initial='standby'
+        )
 
 
 class Var():
@@ -40,6 +60,7 @@ def get_message():
     if text is not None:
         if chat not in users_property:
             users_property[chat] = Var()
+            users_property[chat].machine = Order()
         if text.lower() == 'start':
             answer(chat, 'Какую пиццу вы хотите заказать?')
         elif text.lower() in ['большую', 'большая']:
@@ -67,6 +88,7 @@ def parsing(text):
 
 
 def main():
+    #get_message()
     update_id = get_data()['last_update_id']
     while True:
         current_id = get_data()['last_update_id']
