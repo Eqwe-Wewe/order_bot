@@ -1,97 +1,47 @@
-import requests
-import re
+from aiogram import Bot, Dispatcher, executor
+from machine import Order
 from config import TOKEN
-from transitions import Machine
+import re
 
 
-URL = r'https://api.telegram.org/bot' + TOKEN
+bot = Bot(token=TOKEN)
+dp = Dispatcher(bot)
+users = {}
 
 
-class Order(object):
-
-    states = [
-        'size_selected', 'select_payment_method', 'standby'
-    ]
-
-    transitions = [
-        {'trigger': 'choose_size', 'source': 'standby', 'dest': 'size_selected'},
-        {'trigger': 'choose_payment', 'source': 'size_selected', 'dest': 'select_payment_method'},
-        {'trigger': 'confirm', 'source': 'select_payment_method', 'dest': 'standby'},
-    ]
-
-    def __init__(self):
-        self.machine = Machine(
-            self, states=Order.states, transitions=Order.transitions,
-            initial='standby'
+@dp.message_handler(commands=['help'])
+async def help_comm(message):
+    await message.reply(
+        'Этот бот создан для решения тестового задания по обработке заказа\n'
+        'Нажмите /start для начала диалога'
         )
 
-
-class Var():
-
-    def __init__(self):
-        self.pizza_size = None
-        self.payment_method = None
+@dp.message_handler()
+async def send_message(message):
+    text = await get_data(message)
+    await bot.send_message(message.from_user.id, text)
 
 
-users_property = {}
+async def get_data(message):
+    chat = message.chat['id']
+    
+    if chat not in users:
+        users[chat] = Order()
 
- 
-def get_update():
-    return requests.get(f'{URL}/getUpdates').json()
-
-
-def get_data():
-    updates = get_update()
-    chat_id = updates['result'][-1]['message']['chat']['id']
-    text = updates['result'][-1]['message']['text']
-    last_update_id = updates['result'][-1]['update_id']
-    return {
-        'chat_id': chat_id,
-        'text': text,
-        'last_update_id': last_update_id
-    }
+    order = users[chat]
+    text = await parsing(message.text)
+    if text == 'start':
+        text = order.start()
+        order.choose_size()
+    elif text in ['маленькую', 'маленькая']:
+        text = order.size_selected()
+        order.choose_payment()
+    return text
 
 
-def answer(chat_id, text):
-    requests.get(f'{URL}/sendmessage?chat_id={chat_id}&text={text}')
-
-
-def parsing(text):
-    return ' '.join(re.findall('\s*(\w+)\s*',text))
-
-
-def run(data):
-    message = data
-    chat = message['chat_id']
-    text = parsing(message['text'])
-
-    if text is not None:
-        if chat not in users_property:
-            users_property[chat] = Var()
-            users_property[chat].machine = Order()
-        if text.lower() == 'start':
-            answer(chat, 'Какую пиццу вы хотите заказать?')
-        elif text.lower() in ['большую', 'большая']:
-            users_property[chat].pizza_size = 'большую'
-            text = 'как вы будете платить?'
-            answer(chat, text)
-        elif text.lower() == 'наличкой':
-            users_property[chat].payment_method = 'наличкой'
-            text = (
-                f'вы хотите {users_property[chat].pizza_size} пиццу, '
-                f'оплата - {users_property[chat].payment_method}?'
-            )
-            answer(chat, text)
-        elif text.lower() == 'да':
-            text = 'Спасибо за заказ!'
-            answer(chat, text)
+async def parsing(text):
+    return ' '.join(re.findall('\s*(\w+)\s*',text)).lower()
 
 
 if __name__ == '__main__':
-    update_id = get_data()['last_update_id']
-    while True:
-        data = get_data()
-        current_id = data['last_update_id']
-        if update_id != current_id:
-            run(data)
-            update_id = data['last_update_id']
+    executor.start_polling(dp)
