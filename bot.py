@@ -14,10 +14,11 @@ async def help_comm(message):
     await bot.send_message(
         message.from_user.id,
         (
-            'Этот бот создан для решения тестового задания по обработке заказа\n'
-            'Нажмите /start для начала диалога'
+            'Этот бот создан для решения тестового задания по обработке заказа'
+            '\nНажмите /start для начала диалога'
         )
     )
+
 
 @dp.message_handler()
 async def send_message(message):
@@ -37,7 +38,7 @@ async def get_data(message):
 
 
 def parsing(text):
-    return ' '.join(re.findall('\s*(\w+)\s*',text)).lower()
+    return ' '.join(re.findall(r'\s*(\w+)\s*', text)).lower()
 
 
 if __name__ == '__main__':

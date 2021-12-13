@@ -1,4 +1,5 @@
 from transitions import Machine
+from transitions.core import MachineError
 
 
 class Order():
@@ -6,15 +7,15 @@ class Order():
         self.pizza_size = None
         self.payment_method = None
         self.states = [
-            'standby', 'starting', 'selected_size',
-            'selected_payment_method', 'end'
+            'standby', 'starting', 'size_selected',
+            'payment_method_selected', 'end'
         ]
         self.transitions = [
             ['start', 'standby', 'starting'],
-            ['size_select', 'starting', 'selected_size'],
-            ['select_payment_method', 'selected_size', 'selected_payment_method'],
-            ['confirm', 'selected_payment_method', 'end'],
-            ['not_confirm', 'selected_payment_method', 'end'],
+            ['choose_size', 'starting', 'size_selected'],
+            ['choose_pay_method', 'size_selected', 'payment_method_selected'],
+            ['confirm', 'payment_method_selected', 'end'],
+            ['not_confirm', 'payment_method_selected', 'end'],
         ]
         self.machine = Machine(
             self, states=self.states, transitions=self.transitions,
@@ -22,33 +23,37 @@ class Order():
         )
 
     def get_answer(self, text_msg):
-        if text_msg == 'start':
-            answer = 'Какую пиццу вы хотите пиццу? Большую или маленькую?'
-            self.start()
-        elif text_msg in ['маленькую', 'маленькая']:
-            self.pizza_size = 'маленькую'
-            answer = 'Как вы будете платить?'
-            self.size_select()
-        elif text_msg in ['большую', 'большая']:
-            self.pizza_size = 'большую'
-            answer = 'Как вы будете платить?'
-            self.size_select()
-        elif text_msg in ['наличкой', 'наличными', 'наликом']:
-            self.payment_method = 'наличкой'
-            answer = (
-                f'Вы хотите {self.pizza_size} пиццу, '
-                f'оплата - {self.payment_method}?'
-            )
-            self.select_payment_method()
-        elif text_msg == 'да':
-            answer = 'Спасибо за заказ'
-            self.confirm()
-        elif text_msg == 'нет':
-            self.not_confirm()
-            answer = 'Заказ отменен'
-        else:
+        try:
+            if text_msg == 'start':
+                answer = 'Какую пиццу вы хотите пиццу? Большую или маленькую?'
+                self.start()
+            elif text_msg in ['маленькую', 'маленькая']:
+                self.pizza_size = 'маленькую'
+                answer = 'Как вы будете платить?'
+                self.choose_size()
+            elif text_msg in ['большую', 'большая']:
+                self.pizza_size = 'большую'
+                answer = 'Как вы будете платить?'
+                self.choose_size()
+            elif text_msg in ['наличкой', 'наличными', 'наликом']:
+                self.payment_method = 'наличкой'
+                answer = (
+                    f'Вы хотите {self.pizza_size} пиццу, '
+                    f'оплата - {self.payment_method}?'
+                )
+                self.choose_pay_method()
+            elif text_msg == 'да':
+                answer = 'Спасибо за заказ'
+                self.confirm()
+            elif text_msg == 'нет':
+                self.not_confirm()
+                answer = 'Заказ отменен'
+            else:
+                answer = self.except_msg()
+        except MachineError:
             answer = self.except_msg()
-        return answer
+        finally:
+            return answer
 
     def except_msg(self):
         text = ''
