@@ -61,9 +61,9 @@ class Order():
             text = 'Нажмите /start'
         if self.is_starting():
             text = 'Можно заказать только маленькую или большую пиццы'
-        if self.is_selected_size():
+        if self.is_size_selected():
             text = 'Доступна оплата только наличными'
-        if self.is_selected_payment_method():
+        if self.is_payment_method_selected():
             text = 'Подтвердить заказ - да\nОтменить заказ - нет'
         return text
 
