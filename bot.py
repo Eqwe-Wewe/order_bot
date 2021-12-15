@@ -1,10 +1,10 @@
 from aiogram import Bot, Dispatcher, executor
 from machine import Order
-from config import TOKEN
 import re
+import os
 
 
-bot = Bot(token=TOKEN)
+bot = Bot(token=os.environ['TOKEN'])
 dp = Dispatcher(bot)
 users = {}
 
